@@ -64,13 +64,13 @@ ltNatBase' a .a refl = ltNatBase a
 <→ltNat a (suc b) (diff zero eq) = ltNatBase' a b (suc-inj (sym eq))
 <→ltNat a (suc b) (diff (suc k) eq) = ltNatStep a b (<→ltNat a b (diff k (suc-inj eq)))
 
-natToFinltNat : (n : Nat) → (m : Nat) → {{lt : ltNat m n}} → Fin n 
-natToFinltNat (suc n) zero ⦃ lt ⦄ = zero
-natToFinltNat (suc .(suc m)) (suc m) ⦃ ltNatBase .(suc m) ⦄ = suc (natToFinltNat (suc m) m {{ltNatBase m}})
-natToFinltNat (suc n) (suc m) ⦃ ltNatStep .(suc m) .n lt ⦄ = suc (natToFinltNat n m {{ltNatPred m n lt}})  
+natToFinltNat : (n : Nat) → (m : Nat) → (lt : ltNat m n) → Fin n 
+natToFinltNat (suc n) zero lt = zero
+natToFinltNat (suc .(suc m)) (suc m)  (ltNatBase .(suc m))  = suc (natToFinltNat (suc m) m (ltNatBase m))
+natToFinltNat (suc n) (suc m) (ltNatStep .(suc m) .n lt)  = suc (natToFinltNat n m (ltNatPred m n lt))  
 
 natToFin< : (n : Nat) → (m : Nat) → {{lt : m < n}} → Fin n
-natToFin< n m {{lt}} = natToFinltNat n m {{(<→ltNat m n lt)}}
+natToFin< n m {{lt}} = natToFinltNat n m (<→ltNat m n lt)
 
 -- Converting Nat to Fin (suc m) by n ↦ n mod (suc m)
 
