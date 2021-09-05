@@ -15,62 +15,64 @@ Op (suc n) A = A → Op n A
 
 data leNat : Nat → Nat → Set where
     leNatBase : (a : Nat) → leNat a a
-    leNatStep : (a b : Nat) → leNat a b → leNat a (suc b)
+    leNatStep : {a b : Nat} → leNat a b → leNat a (suc b)
 
-leNatPred : (a b : Nat) → leNat (suc a) b → leNat a b 
-leNatPred a .(suc a) (leNatBase .(suc a)) = leNatStep a a (leNatBase a)
-leNatPred a .(suc b) (leNatStep .(suc a) b le) = leNatStep a b (leNatPred a b le)
+leNatPred : {a b : Nat} → leNat (suc a) b → leNat a b 
+leNatPred {a} .{suc a} (leNatBase .(suc a)) = leNatStep (leNatBase a)
+leNatPred {a} {suc b} (leNatStep le) = leNatStep (leNatPred le)
 
-leNatBase' : (a b : Nat) → a ≡ b → leNat a b 
-leNatBase' a .a refl = leNatBase a
+leNatBase′ : {a b : Nat} → a ≡ b → leNat a b 
+leNatBase′ {a} .{a} refl = leNatBase a
 
-≤Step : (a b : Nat) → a ≤ b → a ≤ (suc b)
-≤Step a b (diff k eq) = diff (suc k) (cong suc eq)
+≤Step : {a b : Nat} → a ≤ b → a ≤ (suc b)
+≤Step (diff k eq) = diff (suc k) (cong suc eq)
 
-leNat→≤ : (a b : Nat) → leNat a b → a ≤ b 
-leNat→≤ a .a (leNatBase .a) = diff! zero
-leNat→≤ a .(suc b) (leNatStep .a b pf) = ≤Step a b (leNat→≤ a b pf)
+instance
+    leNat→≤ : {a b : Nat} → ⦃ leNat a b ⦄ → a ≤ b 
+    leNat→≤ ⦃ leNatBase a ⦄ = diff! zero
+    leNat→≤ ⦃ leNatStep pf ⦄ = ≤Step (leNat→≤ ⦃ pf ⦄)
 
-≤→leNat : (a b : Nat) → a ≤ b → leNat a b
-≤→leNat a b (diff zero eq) = leNatBase' a b (suc-inj (sym eq))
-≤→leNat a (suc b) (diff (suc k) eq) = leNatStep a b (≤→leNat a b (diff k (suc-inj eq)))
+    ≤→leNat : {a b : Nat} → ⦃ a ≤ b ⦄ → leNat a b
+    ≤→leNat {a} {b} ⦃ diff zero eq ⦄ = leNatBase′ (suc-inj (sym eq))
+    ≤→leNat {a} {suc b} ⦃ diff (suc k) eq ⦄ = leNatStep (≤→leNat ⦃ diff k (suc-inj eq) ⦄ )
 
-finInject' : (m n : Nat) → leNat m n → Fin m → Fin n
-finInject' zero n le = λ ()
-finInject' (suc m) (suc .m) (leNatBase .(suc m)) i = i
-finInject' (suc m) (suc n) (leNatStep .(suc m) .n le) zero = zero
-finInject' (suc m) (suc n) (leNatStep .(suc m) .n le) (suc i) = suc (finInject' m n (leNatPred m n le) i)
+finInject' : {m n : Nat} → leNat m n → Fin m → Fin n
+finInject' {zero} {n} le = λ ()
+finInject' {suc m} {suc .m} (leNatBase .(suc m)) i = i
+finInject' {suc m} {suc n} (leNatStep le) zero = zero
+finInject' {suc m} {suc n} (leNatStep le) (suc i) = suc (finInject' (leNatPred le) i)
 
-finInject : (m n : Nat) → m ≤ n → Fin m → Fin n
-finInject m n le = finInject' m n (≤→leNat m n le)
+finInject : {m n : Nat} → m ≤ n → Fin m → Fin n
+finInject le = finInject' (≤→leNat ⦃ le ⦄)
 
 -- < relation on natural numbers
 
 data ltNat : Nat → Nat → Set where
     ltNatBase : (a : Nat) → ltNat a (suc a)
-    ltNatStep : (a b : Nat) → ltNat a b → ltNat a (suc b)
+    ltNatStep : {a b : Nat} → ltNat a b → ltNat a (suc b)
     
-ltNatPred : (a b : Nat) → ltNat (suc a) b → ltNat a b 
-ltNatPred a .(suc (suc a)) (ltNatBase .(suc a)) = ltNatStep a (suc a) (ltNatBase a)
-ltNatPred a .(suc b) (ltNatStep .(suc a) b pf) = ltNatStep a b (ltNatPred a b pf)
+ltNatPred : {a b : Nat} → ltNat (suc a) b → ltNat a b 
+ltNatPred {a} .{suc (suc a)} (ltNatBase .(suc a)) = ltNatStep (ltNatBase a)
+ltNatPred {a} {suc b} (ltNatStep pf) = ltNatStep (ltNatPred pf)
 
-ltNatBase' : (a b : Nat) → a ≡ b → ltNat a (suc b)
-ltNatBase' a .a refl = ltNatBase a
+ltNatBase′ : {a b : Nat} → a ≡ b → ltNat a (suc b)
+ltNatBase′ {a} .{a} refl = ltNatBase a
 
-<Step : (a b : Nat) → a < b → a < (suc b)
-<Step a b (diff k eq) = diff (suc k) (cong suc eq)
+instance 
+    <Step : {a b : Nat} → ⦃ a < b ⦄ → a < (suc b)
+    <Step ⦃ diff k eq ⦄ = diff (suc k) (cong suc eq)
 
-<→ltNat : (a b : Nat) → a < b → ltNat a b
-<→ltNat a (suc b) (diff zero eq) = ltNatBase' a b (suc-inj (sym eq))
-<→ltNat a (suc b) (diff (suc k) eq) = ltNatStep a b (<→ltNat a b (diff k (suc-inj eq)))
+    <→ltNat : {a b : Nat} → ⦃ a < b ⦄ → ltNat a b
+    <→ltNat {a} {suc b} ⦃ diff zero eq ⦄ = ltNatBase′ (suc-inj (sym eq))
+    <→ltNat {a} {suc b} ⦃ diff (suc k) eq ⦄ = ltNatStep (<→ltNat ⦃ diff k (suc-inj eq) ⦄ )
 
-natToFinltNat : (n : Nat) → (m : Nat) → {{lt : ltNat m n}} → Fin n 
+natToFinltNat : (n : Nat) → (m : Nat) → ⦃ lt : ltNat m n ⦄ → Fin n 
 natToFinltNat (suc n) zero ⦃ lt ⦄ = zero
-natToFinltNat (suc .(suc m)) (suc m) ⦃ ltNatBase .(suc m) ⦄ = suc (natToFinltNat (suc m) m {{ltNatBase m}})
-natToFinltNat (suc n) (suc m) ⦃ ltNatStep .(suc m) .n lt ⦄ = suc (natToFinltNat n m {{ltNatPred m n lt}})  
+natToFinltNat (suc .(suc m)) (suc m) ⦃ ltNatBase .(suc m) ⦄ = suc (natToFinltNat (suc m) m ⦃ ltNatBase m ⦄)
+natToFinltNat (suc n) (suc m) ⦃ ltNatStep lt ⦄ = suc (natToFinltNat n m ⦃ ltNatPred lt ⦄)  
 
-natToFin< : (n : Nat) → (m : Nat) → {{lt : m < n}} → Fin n
-natToFin< n m {{lt}} = natToFinltNat n m {{(<→ltNat m n lt)}}
+natToFin< : (n : Nat) → (m : Nat) → ⦃ lt : m < n ⦄ → Fin n
+natToFin< n m {{lt}} = natToFinltNat n m ⦃ (<→ltNat ⦃ lt ⦄) ⦄
 
 -- Converting Nat to Fin (suc m) by n ↦ n mod (suc m)
 
