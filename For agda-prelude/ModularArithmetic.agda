@@ -104,3 +104,20 @@ mulFin : {m : Nat} → Op 2 (Fin m)
 mulFin {m} = passdown {1} m _*N_
 
 syntax mulFin a b = a *F b 
+
+negateFin : {m : Nat} → Op 1 (Fin m)
+negateFin {suc m} a = modsuc m (m - finToNat a)
+
+subtractFin : {m : Nat} → Op 2 (Fin m)
+subtractFin {m} a b = a +F (negateFin b) 
+
+instance
+    SemiringFin : {m : Nat} → {NonZero m} → Semiring (Fin m)
+    zro {{SemiringFin {suc m}}} = zero
+    one {{SemiringFin {suc m}}} = sucFin zero
+    _+_ {{SemiringFin {suc m}}} = addFin  
+    _*_ {{SemiringFin {suc m}}} = mulFin
+
+    SubtractiveFin : {m : Nat} → Subtractive (Fin m)
+    _-_ {{SubtractiveFin}} = subtractFin
+    negate {{SubtractiveFin}} = negateFin
