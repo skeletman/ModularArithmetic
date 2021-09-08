@@ -5,6 +5,7 @@ open import Agda.Builtin.Unit
 open import Data.Nat as ℕ
 open import Data.Nat.Properties
 open import Data.Nat.DivMod
+open import Data.Nat.DivMod.Core
 open import Data.Fin as F
 open import Data.Fin.Properties
 open import Data.Vec
@@ -20,6 +21,7 @@ open import Algebra
     _DistributesOverʳ_ to DistributesOverʳ;
     _DistributesOver_ to DistributesOver
     )
+open import Algebra.Structures
 
 id : {A : Set} → A → A
 id a = a
@@ -41,6 +43,19 @@ _≣_ : {n : ℕ} → {A : Set} → Op n A → Op n A → Set
 _≣_ {zero} {A} = _≡_
 _≣_ {suc n} {A} f g = ∀ a → _≣_ {n} {A} (f a) (g a)  
 
+-- ∸ Properties
+
+∸partialLeftInverse+ : {m n : ℕ} → m ℕ.≤ n → (n ∸ m) ℕ.+ m ≡ n 
+∸partialLeftInverse+ {zero} {n} le = +-identityʳ n
+∸partialLeftInverse+ {suc m} {suc n} (s≤s le) = 
+    trans 
+        (+-suc (n ∸ m) m) 
+        (cong suc (∸partialLeftInverse+ le))
+
+∸partialRightInverse+ : {m n : ℕ} → m ℕ.≤ n → m ℕ.+ (n ∸ m) ≡ n
+∸partialRightInverse+ {zero} {n} z≤n = refl
+∸partialRightInverse+ {suc m} {suc n} (s≤s lt) = cong suc (∸partialRightInverse+ lt)
+
 -- fromℕ< properties
 
 fromℕ<-lt-invariant : {m n : ℕ} → (lt lt′ : m ℕ.< n) → fromℕ< lt ≡ fromℕ< lt′
@@ -58,6 +73,11 @@ quotient-toℕ {m} ⦃ nz ⦄ a = trans
     (fromℕ<-eq-invariant (m<n⇒m%n≡m ⦃ nz ⦄ (toℕ<n a)) (m%n<n (toℕ a) m) (toℕ<n a)) 
     (fromℕ<-toℕ a (toℕ<n a))
 
+-- zeroF
+
+zeroF : {m : ℕ} → {{NonZero m}} → Fin m
+zeroF {suc m} = zero
+
 -- Modular Arithmetic on Fin m
 
 quotient : {n : ℕ} → (m : ℕ) → {{NonZero m}} → Op n ℕ → Op n (Fin m)
@@ -74,6 +94,9 @@ _+F_ {suc m} = quotient (suc m) ⦃ record { nonZero = tt } ⦄ ℕ._+_
 _*F_ : {m : ℕ} → Op 2 (Fin m)
 _*F_ {zero} = λ _ z → z
 _*F_ {suc m} = quotient (suc m) ⦃ record { nonZero = tt } ⦄ ℕ._*_
+
+-F : {m : ℕ} → Op 1 (Fin m)
+-F {suc m} a = quotient (suc m) (suc m ∸ toℕ a)
 
 -- Preserved Functions under Quotient
 
@@ -245,18 +268,37 @@ quotientPreservesDistributivity m distribPf = quotientPreservesLeftDistributivit
 +F-assoc zero = λ x y z → refl
 +F-assoc (suc m) = quotientPreservesAssociativity (suc m) {ℕ._+_} +-assoc
 
-+F-identityˡ : (m : ℕ) → LeftIdentity _≡_ zero (_+F_ {suc m})
-+F-identityˡ m = quotientPreservesLeftIdentity (suc m) {zero} {ℕ._+_} +-identityˡ
++F-identityˡ : (m : ℕ) → {{nz : NonZero m}} → LeftIdentity _≡_ zeroF (_+F_ {m})
++F-identityˡ (suc m) = quotientPreservesLeftIdentity (suc m) {zero} {ℕ._+_} +-identityˡ
 
-+F-identityʳ : (m : ℕ) → RightIdentity _≡_ zero (_+F_ {suc m})
-+F-identityʳ m = quotientPreservesRightIdentity (suc m) {zero} {ℕ._+_} +-identityʳ
++F-identityʳ : (m : ℕ) → {{nz : NonZero m}} → RightIdentity _≡_ zeroF (_+F_ {m})
++F-identityʳ (suc m) = quotientPreservesRightIdentity (suc m) {zero} {ℕ._+_} +-identityʳ
 
-+F-identity : (m : ℕ) → Identity _≡_ zero (_+F_ {suc m})
-+F-identity m = quotientPreservesIdentity (suc m) {zero} {ℕ._+_} +-identity
++F-identity : (m : ℕ) → {{nz : NonZero m}} → Identity _≡_ zeroF (_+F_ {m})
++F-identity (suc m) = quotientPreservesIdentity (suc m) {zero} {ℕ._+_} +-identity
 
 +F-comm : (m : ℕ) → Commutative _≡_ (_+F_ {m})
 +F-comm zero = λ x ()
 +F-comm (suc m) = quotientPreservesCommutativity (suc m) {ℕ._+_} +-comm
+
++F-inverseˡ : (m : ℕ) → {{nz : NonZero m}} → LeftInverse _≡_ zeroF -F (_+F_ {m})
++F-inverseˡ (suc m) a = trans 
+    ((proj₂ +Quot) (suc m ∸ toℕ a) a) 
+    (trans 
+        (cong (quotient {0} (suc m)) (∸partialLeftInverse+ (toℕ≤n a)))
+        (fromℕ<-eq-invariant  (n%n≡0 (suc m)) (s≤s (a[modₕ]n<n zero (suc m) m)) (s≤s z≤n)) 
+    ) 
+
++F-inverseʳ : (m : ℕ) → {{nz : NonZero m}} → RightInverse _≡_ zeroF -F (_+F_ {m})
++F-inverseʳ (suc m) a = trans 
+    (proj₂ ((proj₁ +Quot) (toℕ a)) (suc m ∸ toℕ a)) 
+    (trans 
+        (cong (quotient {0} (suc m)) (∸partialRightInverse+ (toℕ≤n a))) 
+        (fromℕ<-eq-invariant (n%n≡0 (suc m)) (s≤s (a[modₕ]n<n zero (suc m) m)) (s≤s z≤n))
+    )
+
++F-inverse : (m : ℕ) → {{nz : NonZero m}} → Inverse _≡_ zeroF -F (_+F_ {m})
++F-inverse m = +F-inverseˡ m , +F-inverseʳ m
 
 -- Properties of *F
 
@@ -264,18 +306,30 @@ quotientPreservesDistributivity m distribPf = quotientPreservesLeftDistributivit
 *F-assoc zero = λ x y z → refl
 *F-assoc (suc m) = quotientPreservesAssociativity (suc m) {ℕ._*_} *-assoc
 
-*F-identityˡ : (m : ℕ) → LeftIdentity _≡_ (sucF zero) (_*F_ {suc m})
-*F-identityˡ m = quotientPreservesLeftIdentity (suc m) {suc zero} {ℕ._*_} *-identityˡ
+*F-identityˡ : (m : ℕ) → {{nz : NonZero m}} → LeftIdentity _≡_ (sucF zeroF) (_*F_ {m})
+*F-identityˡ (suc m) = quotientPreservesLeftIdentity (suc m) {suc zero} {ℕ._*_} *-identityˡ
 
-*F-identityʳ : (m : ℕ) → RightIdentity _≡_ (sucF zero) (_*F_ {suc m})
-*F-identityʳ m = quotientPreservesRightIdentity (suc m) {suc zero} {ℕ._*_} *-identityʳ
+*F-identityʳ : (m : ℕ) → {{nz : NonZero m}} → RightIdentity _≡_ (sucF zeroF) (_*F_ {m})
+*F-identityʳ (suc m) = quotientPreservesRightIdentity (suc m) {suc zero} {ℕ._*_} *-identityʳ
 
-*F-identity : (m : ℕ) → Identity _≡_ (sucF zero) (_*F_ {suc m})
-*F-identity m = quotientPreservesIdentity (suc m) {suc zero} {ℕ._*_} *-identity
+*F-identity : (m : ℕ) → {{nz : NonZero m}} → Identity _≡_ (sucF zeroF) (_*F_ {m})
+*F-identity (suc m) = quotientPreservesIdentity (suc m) {suc zero} {ℕ._*_} *-identity
 
 *F-comm : (m : ℕ) → Commutative _≡_ (_*F_ {m})
 *F-comm zero = λ x ()
 *F-comm (suc m) = quotientPreservesCommutativity (suc m) {ℕ._*_} *-comm
+
+*F-LeftZero : (m : ℕ) → {{nz : NonZero m}} → LeftZero _≡_ zeroF (_*F_ {m})
+*F-LeftZero (suc m) a = refl
+
+*F-RightZero : (m : ℕ) → {{nz : NonZero m}} → RightZero _≡_ zeroF (_*F_ {m})
+*F-RightZero (suc m) a = 
+    fromℕ<-eq-invariant 
+        (cong (λ b → b % (suc m)) (*-zeroʳ (toℕ a))) 
+        (s≤s (a[modₕ]n<n zero (toℕ a * zero) m)) (s≤s z≤n)
+
+*F-Zero : (m : ℕ) → {{nz : NonZero m}} → Zero _≡_ zeroF (_*F_ {m})
+*F-Zero m = *F-LeftZero m , *F-RightZero m 
 
 -- Properties of +F and *F
 
@@ -291,3 +345,77 @@ quotientPreservesDistributivity m distribPf = quotientPreservesLeftDistributivit
 *F-distrib-+F zero = (λ x x₁ x₂ → refl) , (λ x x₁ x₂ → refl)
 *F-distrib-+F (suc m) = quotientPreservesDistributivity (suc m) {ℕ._*_} {ℕ._+_} *-distrib-+
 
+-- instances
+
+instance
+
+    -- +F Structures 
+
+    +FisMagma : {m : ℕ} → {{nz : NonZero m}} → IsMagma {_} {_} {Fin m} _≡_ _+F_
+    +FisMagma {m} = isMagma _+F_
+
+    +FisSemigroup : {m : ℕ} → {{nz : NonZero m}} → IsSemigroup {_} {_} {Fin m} _≡_ _+F_ 
+    +FisSemigroup {m} = 
+        record {
+            isMagma = +FisMagma ;
+            assoc = +F-assoc m
+        }
+
+    +FisMonoid : {m : ℕ} → {{nz : NonZero m}} → IsMonoid {_} {_} {Fin m} _≡_ _+F_ zeroF
+    +FisMonoid {m} = 
+        record {
+            isSemigroup = +FisSemigroup ;
+            identity = +F-identity m
+        }
+
+    +FisGroup : {m : ℕ} → {{nz : NonZero m}} → IsGroup {_} {_} {Fin m} _≡_ _+F_ zeroF -F
+    +FisGroup {m} = 
+        record {
+            isMonoid = +FisMonoid ;
+            inverse = +F-inverse m ;
+            ⁻¹-cong = cong -F
+        }
+
+    +FisAbelianGroup : {m : ℕ} → {{nz : NonZero m}} → IsAbelianGroup {_} {_} {Fin m} _≡_ _+F_ zeroF -F
+    +FisAbelianGroup {m} = 
+        record {
+            isGroup = +FisGroup ;
+            comm = +F-comm m
+        }
+
+    -- *F Structures
+
+    *FisMagma : {m : ℕ} → {{nz : NonZero m}} → IsMagma {_} {_} {Fin m} _≡_ _*F_
+    *FisMagma {m} = isMagma _*F_
+
+    *FisSemigroup : {m : ℕ} → {{nz : NonZero m}} → IsSemigroup {_} {_} {Fin m} _≡_ _*F_ 
+    *FisSemigroup {m} = 
+        record {
+            isMagma = *FisMagma ;
+            assoc = *F-assoc m
+        }
+
+    *FisMonoid : {m : ℕ} → {{nz : NonZero m}} → IsMonoid {_} {_} {Fin m} _≡_ _*F_ (sucF zeroF)
+    *FisMonoid {m} = 
+        record {
+            isSemigroup = *FisSemigroup ;
+            identity = *F-identity m
+        }
+
+    -- Fin m Structures
+
+    FinₘisRing : {m : ℕ} → {{nz : NonZero m}} → IsRing {_} {_} {Fin m} _≡_ _+F_ _*F_ -F zeroF (sucF zeroF)
+    FinₘisRing {m} = 
+        record { 
+            +-isAbelianGroup = +FisAbelianGroup ; 
+            *-isMonoid = *FisMonoid ; 
+            distrib = *F-distrib-+F m ; 
+            zero = *F-Zero m 
+        }
+
+    FinₘisCommutativeRing : {m : ℕ} → {{nz : NonZero m}} → IsCommutativeRing {_} {_} {Fin m} _≡_ _+F_ _*F_ -F zeroF (sucF zeroF) 
+    FinₘisCommutativeRing {m} = 
+        record { 
+            isRing = FinₘisRing ; 
+            *-comm = *F-comm m 
+        }
