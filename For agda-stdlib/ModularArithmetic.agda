@@ -172,7 +172,7 @@ quotientPreservesLeftIdentity : (m : ℕ) → {e : ℕ} → {{nz : NonZero m}} �
 quotientPreservesLeftIdentity m {e} {_∙_} {{quotPres}} leftIdPf a = 
     trans ((proj₂ quotPres) e a) 
         (trans 
-            (cong (λ x → fromℕ< (m%n<n x m)) (leftIdPf (toℕ a))) 
+            (cong (quotient m) (leftIdPf (toℕ a))) 
             (quotient-toℕ a)
         )
 
@@ -183,6 +183,6 @@ quotientPreservesRightIdentity m {e} {_∙_} ⦃ quotPres ⦄ rightIdPf a =
     trans 
         ((proj₂ ((proj₁ quotPres) (toℕ a))) e) 
         (trans 
-            (cong (λ x → quotient m x) (rightIdPf (toℕ a))) 
+            (cong (quotient m) (rightIdPf (toℕ a))) 
             (quotient-toℕ a)
         )
